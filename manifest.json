@@ -1,0 +1,12 @@
+{
+    "display_name": "RPG Dungeons",
+    "loading_order": 120,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "Arkana8",
+    "version": "4.9.1",
+    "homePage": "https://github.com/tavern-rpg-suite/RPG-Dungeons",
+    "auto_update": false
+}
