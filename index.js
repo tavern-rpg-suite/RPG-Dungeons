@@ -429,8 +429,8 @@ const EN = {
     "📖 Лорбук": "📖 Lorebook",
     "🖼️ Портреты персонажей (ИИ)": "🖼️ Character portraits (AI)",
     "🎲 ГМ-режим · проверка": "🎲 GM mode · testing",
-    "OpenAI images (/images/generations · api.navy, SD-прокси)": "OpenAI images (/images/generations · api.navy, SD proxies)",
-    "OpenRouter / chat image (nano-banana, grok)": "OpenRouter / chat image (nano-banana, grok)",
+    "OpenAI — картинки (/images/generations · api.navy, SD-прокси)": "OpenAI images (/images/generations · api.navy, SD proxies)",
+    "OpenRouter / картинка из чата (nano-banana, grok)": "OpenRouter / chat image (nano-banana, grok)",
     "Промпт портрета · {NAME} {LOOK} {ROLE} {SUIT} {STYLE} {SIZE}": "Portrait prompt · {NAME} {LOOK} {ROLE} {SUIT} {STYLE} {SIZE}",
     "Промпт реликвии · {NAME} {DESC} {STYLE} {SIZE}": "Relic prompt · {NAME} {DESC} {STYLE} {SIZE}",
     "🎨 Нарисовать всё недостающее": "🎨 Draw everything missing",
@@ -5007,8 +5007,8 @@ function settingsHtml() {
             <label for="rdg-img-mode">${T('Тип API')}</label>
             <select id="rdg-img-mode" class="text_pole">
                 <option value="auto">${T('Определить автоматически')}</option>
-                <option value="openai">${T('OpenAI images (/images/generations · api.navy, SD-прокси)')}</option>
-                <option value="openrouter">${T('OpenRouter / chat image (nano-banana, grok)')}</option>
+                <option value="openai">${T('OpenAI — картинки (/images/generations · api.navy, SD-прокси)')}</option>
+                <option value="openrouter">${T('OpenRouter / картинка из чата (nano-banana, grok)')}</option>
                 <option value="comfy">${T('ComfyUI — локально, на своей видеокарте')}</option>
             </select>
             <label for="rdg-img-url">${T('URL API картинок')}</label>
