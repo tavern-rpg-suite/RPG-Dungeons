@@ -1517,3 +1517,38 @@
 .rdg-settings .rdg-sub { margin: 6px 0; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; background: rgba(255,255,255,.02); }
 .rdg-settings .rdg-sub > .inline-drawer-header { padding: 6px 10px; }
 .rdg-settings .rdg-sub > .inline-drawer-content { padding: 4px 10px 10px; }
+
+/* settings in framed groups, as in RPG Vitals */
+.rdg-settings .tsx-frame { margin: 8px 0; border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, .15)); border-radius: 8px; padding: 8px 10px 10px; background: rgba(0, 0, 0, .12); }
+.rdg-settings .tsx-frame > h4.tsx-framehead { margin: 0 0 6px; padding: 0; font-size: 1em; font-weight: 700; opacity: .92; border: 0; }
+.rdg-settings .tsx-frame > *:last-child { margin-bottom: 0; }
+/* rows made only of buttons (GM mode, cards and lorebook, portraits): two even columns instead of
+   buttons squeezed into narrow towers of wrapped words; the re-forge button takes the whole width */
+.rdg-settings .flex-container.flexgap5:has(> .menu_button):not(:has(> :not(.menu_button))) { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+.rdg-settings .flex-container.flexgap5:has(> .menu_button):not(:has(> :not(.menu_button))) > .menu_button { width: auto; margin: 0; white-space: normal; line-height: 1.25; padding: 6px 8px; min-height: 0; }
+.rdg-settings #rdg-reforge { width: 100%; box-sizing: border-box; margin: 6px 0 4px; white-space: normal; }
+/* a label and a small number on one line */
+.rdg-settings .rdg-srow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 4px 0; }
+.rdg-settings .rdg-srow label { flex: 1; min-width: 0; font-size: .9em; line-height: 1.25; opacity: .88; }
+.rdg-settings .rdg-srow input[type="number"] { flex: 0 0 72px; width: 72px; margin: 0; text-align: center; }
+/* the pocket watch hung over the screen's title ("CHOOSE A HOLE", "DOSSIER"): it hangs from the chain
+   further right now, over empty paper */
+.rdg-dwatch { left: 56%; }
+/* a phone: the window used to be taller than the screen and was centred past its top edge — the title,
+   the rail and the toast all fought over the top. Now it starts at the top, fits the screen, and only
+   the page inside scrolls; the cards and vines that hung outside the frame stay inside it */
+@media (max-width: 720px) {
+    #rdg-modal { align-items: flex-start; padding: 6px; }
+    #rdg-modal .rdg-shell { max-height: calc(100dvh - 12px); box-sizing: border-box; }
+    #rdg-modal .rdg-main { height: auto; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+    #rdg-modal .rdg-decor { overflow: hidden; border-radius: inherit; }
+    #rdg-modal .rdg-dwatch { display: none; }
+}
+
+/* a drawer inside the settings, framed like the groups around it */
+.rdg-settings .tsx-subframe { margin: 8px 0; border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, .15)); border-radius: 8px; background: rgba(0, 0, 0, .12); }
+.rdg-settings .tsx-subframe > .inline-drawer-header { background: none !important; border: 0 !important; box-shadow: none; padding: 8px 10px !important; margin: 0 !important; min-height: 0; border-radius: 8px; }
+.rdg-settings .tsx-subframe > .inline-drawer-header b, .rdg-settings .tsx-subframe > .inline-drawer-header span { font-weight: 700; }
+.rdg-settings .tsx-subframe > .inline-drawer-header .inline-drawer-icon { font-size: 1em; opacity: .65; }
+.rdg-settings .tsx-subframe > .inline-drawer-content { padding: 0 10px 10px; }
+.rdg-settings .tsx-subframe .tsx-frame { background: rgba(0, 0, 0, .08); }

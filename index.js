@@ -268,6 +268,9 @@ const EN = {
     "Пусто — ключ возьмётся из соседних расширений набора.": "Leave empty to borrow the key from a sibling extension of the suite.",
     "Модель — например deepseek/deepseek-chat": "Model — e.g. deepseek/deepseek-chat",
     "Температура": "Temperature",
+    "Ожидание ответа, сек": "Response timeout, s",
+    "Повторы при сбое": "Retries on a failure",
+    "Локальной модели (KoboldCpp, LM Studio, Ollama) даётся не меньше 5 минут.": "A local model (KoboldCpp, LM Studio, Ollama) is given at least 5 minutes.",
     "Проверить связь": "Test connection",
     "🎭 Спутники": "🎭 Companions",
     "🔨 При ковке мира": "🔨 When forging the world",
@@ -947,7 +950,13 @@ async function callAI(system, user, maxTokens = 2200, opts = {}) {
         const ctrl = new AbortController();
         currentAbort = ctrl;
         cancelledByUser = false;
-        const timer = setTimeout(() => { try { ctrl.abort(); } catch (e) { } }, Number(settings.timeoutSec || 120) * 1000);
+        /* A local model (KoboldCpp, LM Studio, Ollama) writes slower than a hosted one, and
+           KoboldCpp turns response_format into a grammar that can cut the answer off after a few
+           tokens — the description never came. Local endpoints get no such flag (parseJSON finds
+           the object in whatever comes back) and at least five minutes. */
+        const local = isLocalEndpoint(url);
+        const secs = Math.max(Number(settings.timeoutSec || 120), local ? 300 : 0);
+        const timer = setTimeout(() => { try { ctrl.abort(); } catch (e) { } }, secs * 1000);
         try {
             const res = await fetch(url, {
                 method: 'POST', signal: ctrl.signal,
@@ -956,7 +965,7 @@ async function callAI(system, user, maxTokens = 2200, opts = {}) {
                     model: cfg.model, temperature: settings.temperature,
                     messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
                     max_tokens: maxTokens, max_completion_tokens: maxTokens,
-                    response_format: { type: 'json_object' }
+                    ...(local ? {} : { response_format: { type: 'json_object' } })
                 })
             });
             if (!res.ok) {
@@ -3565,92 +3574,34 @@ function renderAbyss(main, p) {
 
 
 /* ============================================================
-   ПОЛНАЯ КАРТА ПЕРСОНАЖА (Living Character Card) + экспорт PNG
+   ПОЛНАЯ КАРТА ПЕРСОНАЖА (PList + Ali:Chat) + экспорт PNG
    ============================================================ */
-const FULL_CARD_SYS = `You are an expert character creator for high-quality roleplay (SillyTavern).
-Your goal is to create a "Living Character Card" that perfectly captures the specific "Vibe" of the character (be it goofy, serious, dark, or energetic).
+const FULL_CARD_SYS = `You write character cards for SillyTavern in the PList + Ali:Chat format.
 
-CRITICAL INSTRUCTIONS:
-1.  **CAPTURE THE VIBE:** If the character is a "goofball" or "hot-blooded idiot" (like Natsu), they MUST sound like it. Do not make everyone a dark philosopher. If they are funny, be funny. If they are stoic, be stoic. No clichés or clichéd phrases.
-2.  **APPEARANCE SECTION:** You MUST include a dedicated "APPEARANCE" section with Hair, Eyes, Body, Clothes, and Scent.
-3.  **SHOW, DON'T TELL:** In dialogues, describe their specific movements (e.g., "grinning widely," "scratching head in confusion").
-4.  **THE "GOOD SIDE" & VULNERABILITY:** Every character needs a moment of humanity.
-5.  **INTEGRATED NSFW/ROMANCE:** Romantic/Sexual traits must flow from their personality.
+A PList is one bracketed list of traits. Sections are separated by semicolons, traits inside a section by commas, and each section starts with a label and a colon. Keep traits short (a word or a few words), concrete and specific to this character; the most important sections go last.
+Ali:Chat is a set of short example exchanges in which {{char}} answers simple questions from {{user}} in their own voice, with actions in *asterisks* (lowercase unless a name). Every exchange shows the traits of the PList instead of repeating them, and names {{char}} by name at least once.
 
-OUTPUT FORMAT (JSON):
-The output must be a valid JSON object.
-"name": Character Name
-"raw_card": The full text block in English.
+Write the card in English. Do not copy any other character; make this one consistent with the details you are given.
 
-STRUCTURE FOR "raw_card" (Use this exact structure):
+Reply with JSON only: {"name": "the character's name", "raw_card": "the card"}.
+The "raw_card" text has exactly these two parts, in this order:
 
-<[Character Name]>
-🔹 BASIC INFORMATION:
-Full Name:
-Alias/Nickname:
-Race/Species:
-Gender:
-Age:
-Height:
-Weight:
-Occupation:
-Alignment:
+[{{char}}'s appearance: body, skin, hair, eyes, height and build, distinctive marks; {{char}}'s clothes: everyday outfit, accessories; {{char}}'s scent: one or two notes; {{char}}'s background: origin, key events, what they do now; {{char}}'s relationships: the people who matter and how; {{char}}'s abilities: skills, fighting style, magic or tools; {{char}}'s likes: …; {{char}}'s dislikes: …; {{char}}'s speech: tone, pace, favourite words, verbal habits; {{char}}'s romance: how they show affection, what draws them, what scares them in closeness; {{char}}'s personality: core traits, the face they show, what they hide, fears, wants]
 
-🔹 APPEARANCE:
-Hair: [Color, Style]
-Eyes: [Color, Shape]
-Body: [Build, Scars, Tattoos, etc.]
-Clothes: [Default outfit details]
-Scent: [Specific smell]
+{{user}}: Appearance?
+{{char}}: (4–6 lines: how {{char}} looks, told by {{char}} with small actions)
 
-🔹 EXAMPLES OF DIALOGUES:
-(Generate 5 distinct scenarios using {{user}} and {{char}}. Capture the character's unique voice and quirks.):
+{{user}}: Personality?
+{{char}}: (4–6 lines: who {{char}} is, in their own words and manner)
 
-1. **Introduction:**
-{{user}}: "Who are you?"
-{{char}}: *[Action revealing personality. Spoken introduction in character's specific voice.]*
+{{user}}: What do you want?
+{{char}}: (4–6 lines: their goal and why, as simple or as tangled as they are)
 
-2. **Philosophy / Motivation:**
-{{user}}: "Why do you fight? / What do you want?"
-{{char}}: *[Explains their goal. If they are simple-minded, keep it simple! If complex, make it complex.]*
+{{user}}: (a quiet moment: something small and fragile, or a failure)
+{{char}}: (4–6 lines: the soft side)
 
-3. **Vulnerability / Soft Side:**
-{{user}}: *[Scenario: Interaction with something small/weak or a moment of failure.]*
-{{char}}: *[Shows emotion, sadness, or gentleness.]*
-
-4. **The "True Nature" / Intense Mode:**
-{{user}}: "You are dangerous."
-{{char}}: *[The mask slips. If they are a dragon, they growl. If they are a cold duke, they freeze the air.]*
-
-5. **Romance / Intimacy:**
-{{user}}: *[A romantic or intimate moment.]*
-{{char}}: *[How do they react to love? Blushing? Dominating? Clueless?]*
-
-🔹 {{char}}'s PERSONA:
-[Deep psychological profile. Keywords: Personality traits. Fears. desires. "The Mask" vs "The Real Self".]
-
-🔹 RELATIONSHIPS:
-[Key connections.]
-
-🔹 ROMANCE & NSFW TRAITS:
-- **The Dynamic:** (e.g., "The Clueless Lover," "The Primal Protector," "The Sadistic Noble").
-- **Kinks/Preferences:** (Specific to lore. e.g., Natsu likes heat/biting. A noble likes control).
-- **The Voice:** (During intimacy).
-- **Aftercare:** (Cuddly? Cold? Sleepy?).
-
-🔹 PREFERENCES:
-- **Likes:** (e.g., music..)
-- **Dislikes:** (e.g., cry...)
-
-🔹 BACKGROUND & LORE:
-[History, Trauma, Key Plot Points.]
-
-🔹 SPEECH PATTERNS:
-[Keywords, slang, tone (e.g., "I'm all fired up!", "Lousy", Formal, Slurred).]
-
-🔹 COMBAT/ABILITIES:
-[Fighting style, Magic, Weapons.]
-</[Character Name]>`;
+{{user}}: (a moment of closeness)
+{{char}}: (4–6 lines: how they react when someone gets near)`;
 
 async function genFullCard(id) {
     const p = profile(), h = heroById(p, id);
@@ -3658,7 +3609,7 @@ async function genFullCard(id) {
     ui.busy = true; render();
     const a = artById(p, h.art);
     const chapters = (h.chapters || []).filter(c => c.x).map(c => `${c.t}: ${c.x}`).join('\n\n');
-    const usr = `Build the Living Character Card for this companion.
+    const usr = `Write the character card for this companion.
 
 THEY BELONG TO THIS WORLD (the player's own character card):
 ${cardText()}
@@ -3682,7 +3633,7 @@ Their skills: ${(h.skills || []).map(s => `${s.n} (${s.d})`).join('; ') || '—'
 ${chapters ? `\nTHEIR STORY SO FAR:\n${chapters}` : ''}
 ${h.card ? `\nSHORT W++ VERSION (keep it consistent):\n${h.card}` : ''}
 
-HARD RULE: the APPEARANCE section of the card must reproduce the canon above — same gender, same hair, same eyes, same build, same clothes, same scent. Do not invent a different look, do not change their gender, do not age them. A portrait has already been drawn from this canon, so the card must match it.`;
+HARD RULE: the appearance, clothes and scent in the card must reproduce the canon above — same gender, same hair, same eyes, same build, same clothes, same scent. Do not invent a different look, do not change their gender, do not age them. A portrait has already been drawn from this canon, so the card must match it.`;
     try {
         const out = await callAI(FULL_CARD_SYS, usr, 6000);
         const raw = out && (out.raw_card || out.rawCard || out.card);
@@ -4946,6 +4897,9 @@ function settingsHtml() {
                 <input type="range" id="rdg-temp" min="0" max="2" step="0.1">
                 <span id="rdg-tempval"></span>
             </div>
+            <div class="rdg-srow"><label for="rdg-timeout">${T('Ожидание ответа, сек')}</label><input type="number" id="rdg-timeout" class="text_pole" min="20" max="600" step="10"></div>
+            <div class="rdg-srow"><label for="rdg-retries">${T('Повторы при сбое')}</label><input type="number" id="rdg-retries" class="text_pole" min="0" max="5"></div>
+            <small>${T('Локальной модели (KoboldCpp, LM Studio, Ollama) даётся не меньше 5 минут.')}</small>
             <div class="rdg-btnrow"><div id="rdg-api-test" class="menu_button">${T('Проверить связь')}</div></div>
             <small id="rdg-apinote"></small>
 
@@ -5121,9 +5075,43 @@ function applyLangEverywhere() {
     const rl = document.getElementById('rdg-rail'); if (rl) rl.removeAttribute('data-built');
     render(); ensureUI();
 }
+
+/* The settings in framed groups, the way RPG Vitals has them: each <h4> heading and what follows it,
+   up to the next heading, go into one frame. Nothing is rebuilt — the same elements are moved, so every
+   id and every handler stays as it was. A nested drawer stands on its own; the old rulers go. */
+function frameSettings(root) {
+    if (!root) return;
+    root.querySelectorAll('.inline-drawer-content').forEach(content => {
+        if (content.dataset.framed) return;
+        content.dataset.framed = '1';
+        let box = null;
+        [...content.children].forEach(el => {
+            if (el.tagName === 'H4') {
+                box = document.createElement('div');
+                box.className = 'tsx-frame';
+                content.insertBefore(box, el);
+                el.classList.add('tsx-framehead');
+                box.appendChild(el);
+                return;
+            }
+            if (el.tagName === 'HR' && el.classList.contains('sysHR')) { el.remove(); return; }
+            // a drawer inside the settings: framed like the rest, still opening and closing
+            if (el.classList.contains('inline-drawer')) { el.classList.add('tsx-subframe'); box = null; return; }
+            // what follows a drawer, before the next heading, is not left loose between frames
+            if (!box && content.querySelector(':scope > .tsx-frame, :scope > .tsx-subframe')) {
+                box = document.createElement('div');
+                box.className = 'tsx-frame tsx-loose';
+                content.insertBefore(box, el);
+            }
+            if (box) box.appendChild(el);
+        });
+    });
+}
+
 function setupUI() {
     jQuery('.rdg-settings').remove();
     jQuery('#extensions_settings').append(settingsHtml());
+    frameSettings(document.querySelector('.rdg-settings'));
     jQuery('.rdg-settings .rdg-drawer-toggle').on('click', function () {
         jQuery(this).next('.inline-drawer-content').slideToggle();
         jQuery(this).find('.inline-drawer-icon').toggleClass('down up');
